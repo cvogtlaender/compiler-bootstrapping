@@ -1,13 +1,14 @@
 package transpiler;
 
 import ast.*;
+import environment.Builtins;
 import visitors.JavaTranspileVisitor;
 
 import java.util.*;
 
 public class JavaTranspiler {
 
-  public static String emitJava(Prog prog, IdentityHashMap<ExprNode, TypeRef> types) {
+  public static String emitJava(Prog prog, IdentityHashMap<ExprNode, TypeRef> types, Builtins b) {
     StringBuilder sb = new StringBuilder();
     sb.append("public class Out {\n");
 
@@ -23,7 +24,7 @@ public class JavaTranspiler {
       sb.append(") {\n");
 
       TempGen temps = new TempGen();
-      JavaTranspileVisitor ev = new JavaTranspileVisitor(temps, types, new HashMap<>());
+      JavaTranspileVisitor ev = new JavaTranspileVisitor(temps, types, new HashMap<>(), b);
       EmitResult res = f.body.accept(ev);
 
       for (String s : res.javaStatements)
@@ -33,7 +34,7 @@ public class JavaTranspiler {
     }
 
     sb.append("  public static void main(String[] args) {\n");
-    sb.append("    System.out.println(main());\n");
+    sb.append("    main();\n");
     sb.append("  }\n");
 
     sb.append("}\n");

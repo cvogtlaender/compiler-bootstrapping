@@ -1,7 +1,6 @@
 int fact(int n) = if n == 0 then 1 else n * fact(n - 1);
 
 int main() = {
-
   let int test = fact(5) in test+1;
 
 
@@ -10,5 +9,5 @@ int main() = {
     2;
   };
 
-  x;
+  print("Hello World");
 }

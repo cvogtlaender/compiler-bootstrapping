@@ -9,6 +9,8 @@ import antlr.xminLexer;
 import antlr.xminParser;
 
 import ast.*;
+import environment.Builtins;
+import environment.functions.Print;
 import transpiler.JavaTranspiler;
 import visitors.ASTBuildVisitor;
 import visitors.TypeCheckVisitor;
@@ -57,13 +59,17 @@ public class Main {
 
     IdentityHashMap<ExprNode, TypeRef> types = new IdentityHashMap<>();
 
+    // Builtin functions
+    Builtins b = new Builtins();
+    b.register(new Print());
+
     for (FunDef f : prog.functions) {
       Env env = new Env();
       for (Param p : f.params) {
         env.put(p.name, p.type);
       }
 
-      TypeCheckVisitor tc = new TypeCheckVisitor(env, funs, types);
+      TypeCheckVisitor tc = new TypeCheckVisitor(env, funs, types, b);
       TypeRef bodyT = f.body.accept(tc);
 
       if (!bodyT.name.equals(f.returnType.name)) {
@@ -72,8 +78,12 @@ public class Main {
       }
     }
 
-    String javaOutput = JavaTranspiler.emitJava(prog, types);
-    Files.writeString(Path.of("Out.java"), javaOutput);
+    String javaOutput = JavaTranspiler.emitJava(prog, types, b);
+
+    Path outDir = Path.of("dist");
+    Files.createDirectories(outDir);
+
+    Files.writeString(outDir.resolve("Out.java"), javaOutput);
     System.out.println("Program transpiled");
   }
 }
