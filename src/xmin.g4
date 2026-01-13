@@ -54,7 +54,7 @@ ifExpr
 
 /* { e1; e2; e3 }  -> Wert ist e3 (Sequencing als Expression) */
 blockExpr
-    : '{' expression (';' expression)* '}'
+    : '{' expression (';' expression)* ';' '}'
     ;
 
 logicalOrExpr

@@ -9,6 +9,7 @@ import antlr.xminLexer;
 import antlr.xminParser;
 
 import ast.*;
+import transpiler.JavaTranspiler;
 import visitors.ASTBuildVisitor;
 import visitors.TypeCheckVisitor;
 
@@ -71,6 +72,8 @@ public class Main {
       }
     }
 
-    System.out.println("Program Exit");
+    String javaOutput = JavaTranspiler.emitJava(prog, types);
+    Files.writeString(Path.of("Out.java"), javaOutput);
+    System.out.println("Program transpiled");
   }
 }
