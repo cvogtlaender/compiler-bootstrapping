@@ -10,6 +10,7 @@ import antlr.xminParser;
 
 import ast.*;
 import environment.Builtins;
+import environment.functions.CharAt;
 import environment.functions.Print;
 import transpiler.JavaTranspiler;
 import visitors.ASTBuildVisitor;
@@ -62,6 +63,7 @@ public class Main {
     // Builtin functions
     Builtins b = new Builtins();
     b.register(new Print());
+    b.register(new CharAt());
 
     for (FunDef f : prog.functions) {
       Env env = new Env();

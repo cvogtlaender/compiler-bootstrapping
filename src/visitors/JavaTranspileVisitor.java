@@ -213,4 +213,7 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
     throw new RuntimeException("Field access codegen not implemented yet");
   }
 
+  public TempGen getTemps() {
+    return temps;
+  }
 }

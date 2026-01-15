@@ -8,6 +8,7 @@ import typechecker.FunSig;
 import visitors.JavaTranspileVisitor;
 
 public interface Builtin {
+
   String name();
 
   FunSig signature();
