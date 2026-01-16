@@ -11,12 +11,15 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
 
   private final Env env;
   private final Map<String, FunSig> funs;
+  private final Map<String, StructSig> structs;
   private final IdentityHashMap<ExprNode, TypeRef> types;
   private final Builtins builtins;
 
-  public TypeCheckVisitor(Env env, Map<String, FunSig> funs, IdentityHashMap<ExprNode, TypeRef> types, Builtins b) {
+  public TypeCheckVisitor(Env env, Map<String, FunSig> funs, Map<String, StructSig> structs,
+      IdentityHashMap<ExprNode, TypeRef> types, Builtins b) {
     this.env = env;
     this.funs = funs;
+    this.structs = structs;
     this.types = types;
     this.builtins = b;
   }
@@ -140,7 +143,7 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
     Env child = env.child();
     child.put(n.name, n.type);
 
-    TypeCheckVisitor scoped = new TypeCheckVisitor(child, funs, types, builtins);
+    TypeCheckVisitor scoped = new TypeCheckVisitor(child, funs, structs, types, builtins);
     TypeRef bt = n.body.accept(scoped);
     return mark(n, bt);
   }
@@ -161,6 +164,7 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
       throw new TypeError("Only direct function calls supported (callee must be identifier)");
     }
 
+    // Builtin functions
     if (builtins.has(vn.name)) {
       Builtin b = builtins.get(vn.name);
       FunSig sig = b.signature();
@@ -178,6 +182,22 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
       }
 
       return mark(n, sig.returnType);
+    }
+
+    if (structs.containsKey(vn.name)) {
+      StructSig s = structs.get(vn.name);
+
+      if (n.args.size() != s.paramTypes.size()) {
+        throw new TypeError("Struct '" + vn.name + "'' expects " + s.paramTypes.size() + " args, got " + n.args.size());
+      }
+
+      for (int i = 0; i < n.args.size(); i++) {
+        TypeRef at = n.args.get(i).accept(this);
+        TypeRef pt = s.paramTypes.get(i);
+        requireSame(at, pt, "Arg " + (i + 1) + " of struct '" + vn.name
+            + "' expects " + pt.name + ", got " + at.name);
+      }
+      return mark(n, new TypeRef(vn.name));
     }
 
     FunSig sig = funs.get(vn.name);
@@ -200,6 +220,18 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
 
   @Override
   public TypeRef visit(FieldNode n) {
-    throw new TypeError("Field access not implemented yet");
+    TypeRef t = n.target.accept(this);
+
+    if (!this.structs.containsKey(t.name)) {
+      throw new TypeError("Unknown field type '" + t.name + "'");
+    }
+    StructSig s = this.structs.get(t.name);
+
+    for (int i = 0; i < s.fieldNames.size(); i++) {
+      if (s.fieldNames.get(i).equals(n.field)) {
+        return mark(n, s.paramTypes.get(i));
+      }
+    }
+    throw new TypeError("Field does not exist");
   }
 }

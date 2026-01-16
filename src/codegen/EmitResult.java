@@ -1,4 +1,4 @@
-package transpiler;
+package codegen;
 
 import java.util.ArrayList;
 import java.util.List;

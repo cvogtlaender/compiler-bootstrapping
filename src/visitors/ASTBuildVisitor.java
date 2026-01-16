@@ -15,13 +15,39 @@ public class ASTBuildVisitor extends xminBaseVisitor<Object> {
   @Override
   public Prog visitProg(xminParser.ProgContext ctx) {
     List<FunDef> funs = new ArrayList<>();
+    List<StructDef> structs = new ArrayList<>();
 
     for (var child : ctx.children) {
       if (child instanceof xminParser.FunctionContext fctx) {
         funs.add((FunDef) visitFunction(fctx));
       }
     }
-    return new Prog(funs);
+
+    for (var child : ctx.children) {
+      if (child instanceof xminParser.StructDeclContext fctx) {
+        structs.add((StructDef) visitStructDecl(fctx));
+      }
+    }
+    return new Prog(funs, structs);
+  }
+
+  @Override
+  public StructDef visitStructDecl(xminParser.StructDeclContext ctx) {
+    String name = ctx.ID().getText();
+    List<Param> fields = new ArrayList<>();
+
+    for (var f : ctx.structField()) {
+      fields.add(new Param(typeFrom(f.type()), f.ID().getText()));
+    }
+    return new StructDef(name, fields);
+  }
+
+  @Override
+  public Param visitStructField(xminParser.StructFieldContext ctx) {
+    TypeRef t = typeFrom(ctx.type());
+    String n = ctx.ID().getText();
+
+    return new Param(t, n);
   }
 
   @Override

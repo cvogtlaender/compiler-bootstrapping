@@ -1,4 +1,4 @@
-package transpiler;
+package codegen;
 
 public class TempGen {
   private int i = 0;

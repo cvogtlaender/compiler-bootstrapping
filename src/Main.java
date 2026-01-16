@@ -9,15 +9,16 @@ import antlr.xminLexer;
 import antlr.xminParser;
 
 import ast.*;
+import codegen.JavaTranspiler;
 import environment.Builtins;
 import environment.functions.CharAt;
 import environment.functions.Print;
-import transpiler.JavaTranspiler;
 import visitors.ASTBuildVisitor;
 import visitors.TypeCheckVisitor;
 
 import typechecker.Env;
 import typechecker.FunSig;
+import typechecker.StructSig;
 import typechecker.TypeError;
 
 public class Main {
@@ -58,6 +59,22 @@ public class Main {
       funs.put(f.name, new FunSig(f.returnType, pts));
     }
 
+    Map<String, StructSig> structs = new HashMap<>();
+    for (StructDef s : prog.structs) {
+      if (structs.containsKey(s.name)) {
+        throw new TypeError("Duplicate struct: " + s.name);
+      }
+
+      List<String> names = s.params.stream()
+          .map((f) -> f.name)
+          .collect(Collectors.toList());
+      List<TypeRef> fds = s.params.stream()
+          .map((f) -> f.type)
+          .collect(Collectors.toList());
+
+      structs.put(s.name, new StructSig(names, fds));
+    }
+
     IdentityHashMap<ExprNode, TypeRef> types = new IdentityHashMap<>();
 
     // Builtin functions
@@ -71,7 +88,7 @@ public class Main {
         env.put(p.name, p.type);
       }
 
-      TypeCheckVisitor tc = new TypeCheckVisitor(env, funs, types, b);
+      TypeCheckVisitor tc = new TypeCheckVisitor(env, funs, structs, types, b);
       TypeRef bodyT = f.body.accept(tc);
 
       if (!bodyT.name.equals(f.returnType.name)) {
@@ -80,7 +97,7 @@ public class Main {
       }
     }
 
-    String javaOutput = JavaTranspiler.emitJava(prog, types, b);
+    String javaOutput = JavaTranspiler.emitJava(prog, types, b, structs);
 
     Path outDir = Path.of("dist");
     Files.createDirectories(outDir);

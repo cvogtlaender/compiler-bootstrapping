@@ -20,11 +20,12 @@ import ast.StringLitNode;
 import ast.TypeRef;
 import ast.UnaryExprNode;
 import ast.VarNode;
+import codegen.EmitResult;
+import codegen.JavaType;
+import codegen.TempGen;
 import environment.Builtin;
 import environment.Builtins;
-import transpiler.EmitResult;
-import transpiler.JavaType;
-import transpiler.TempGen;
+import typechecker.StructSig;
 
 public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
 
@@ -32,13 +33,15 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
   private final IdentityHashMap<ExprNode, TypeRef> types;
   private final Map<String, String> vars;
   private final Builtins builtins;
+  private final Map<String, StructSig> structs;
 
   public JavaTranspileVisitor(TempGen temps, IdentityHashMap<ExprNode, TypeRef> types, Map<String, String> vars,
-      Builtins builtins) {
+      Builtins builtins, Map<String, StructSig> structs) {
     this.temps = temps;
     this.types = types;
     this.vars = vars;
     this.builtins = builtins;
+    this.structs = structs;
   }
 
   private TypeRef typeOf(ExprNode e) {
@@ -136,7 +139,7 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
 
     r.javaStatements.add(JavaType.of(n.type) + " " + javaName + " = " + v.value + ";");
 
-    EmitResult b = n.body.accept(new JavaTranspileVisitor(temps, types, childMap, builtins));
+    EmitResult b = n.body.accept(new JavaTranspileVisitor(temps, types, childMap, builtins, structs));
     r.javaStatements.addAll(b.javaStatements);
     r.value = b.value;
     return r;
@@ -153,8 +156,8 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
     String jt = JavaType.of(typeOf(n));
     r.javaStatements.add(jt + " " + tmp + ";");
 
-    EmitResult t = n.thenBranch.accept(new JavaTranspileVisitor(temps, types, new HashMap<>(vars), builtins));
-    EmitResult e = n.elseBranch.accept(new JavaTranspileVisitor(temps, types, new HashMap<>(vars), builtins));
+    EmitResult t = n.thenBranch.accept(new JavaTranspileVisitor(temps, types, new HashMap<>(vars), builtins, structs));
+    EmitResult e = n.elseBranch.accept(new JavaTranspileVisitor(temps, types, new HashMap<>(vars), builtins, structs));
 
     r.javaStatements.add("if (" + c.value + ") {");
     r.javaStatements.addAll(indent(t.javaStatements));
@@ -203,14 +206,26 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
 
     String tmp = temps.next();
     String jt = JavaType.of(typeOf(n));
-    r.javaStatements.add(jt + " " + tmp + " = " + cal.value + "(" + String.join(", ", argVals) + ");");
+
+    r.javaStatements.add(jt + " " + tmp + " = " + (this.structs.containsKey(jt) ? "new " : "") + cal.value + "("
+        + String.join(", ", argVals) + ");");
     r.value = tmp;
     return r;
   }
 
   @Override
   public EmitResult visit(FieldNode n) {
-    throw new RuntimeException("Field access codegen not implemented yet");
+    EmitResult r = emit(n.target);
+
+    EmitResult s = new EmitResult();
+    r.javaStatements.addAll(r.javaStatements);
+
+    String temp = temps.next();
+    String jt = JavaType.of(typeOf(n));
+
+    s.javaStatements.add(jt + " " + temp + " = " + r.value + "." + n.field + ";");
+    s.value = temp;
+    return s;
   }
 
   public TempGen getTemps() {

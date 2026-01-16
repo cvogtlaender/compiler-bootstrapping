@@ -4,8 +4,8 @@ import java.util.List;
 
 import ast.ExprNode;
 import ast.TypeRef;
+import codegen.EmitResult;
 import environment.Builtin;
-import transpiler.EmitResult;
 import typechecker.FunSig;
 import visitors.JavaTranspileVisitor;
 

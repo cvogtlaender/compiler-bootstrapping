@@ -3,7 +3,7 @@ package environment;
 import java.util.List;
 
 import ast.ExprNode;
-import transpiler.EmitResult;
+import codegen.EmitResult;
 import typechecker.FunSig;
 import visitors.JavaTranspileVisitor;
 
