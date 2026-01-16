@@ -12,7 +12,11 @@ import ast.*;
 import codegen.JavaTranspiler;
 import environment.Builtins;
 import environment.functions.CharAt;
+import environment.functions.Ord;
 import environment.functions.Print;
+import environment.functions.PrintInt;
+import environment.functions.StrLen;
+import environment.functions.SubStr;
 import visitors.ASTBuildVisitor;
 import visitors.TypeCheckVisitor;
 
@@ -80,7 +84,11 @@ public class Main {
     // Builtin functions
     Builtins b = new Builtins();
     b.register(new Print());
+    b.register(new PrintInt());
     b.register(new CharAt());
+    b.register(new StrLen());
+    b.register(new SubStr());
+    b.register(new Ord());
 
     for (FunDef f : prog.functions) {
       Env env = new Env();

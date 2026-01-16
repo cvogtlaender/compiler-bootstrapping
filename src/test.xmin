@@ -6,9 +6,7 @@ struct Point {
 
 int main() = {
   let Point p = Point(1,2) in {
-    p.x = 5;
-
+    printInt(ord(charAt("tast", 2)));
     0;
   };
-  0;
 }

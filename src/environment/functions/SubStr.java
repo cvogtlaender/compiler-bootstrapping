@@ -9,35 +9,34 @@ import environment.Builtin;
 import typechecker.FunSig;
 import visitors.JavaTranspileVisitor;
 
-public class Ord implements Builtin {
+public class SubStr implements Builtin {
 
   @Override
   public String name() {
-    return "ord";
+    return "substr";
   }
 
   @Override
   public FunSig signature() {
-    return new FunSig(TypeRef.INT, List.of(TypeRef.STRING));
+    return new FunSig(TypeRef.STRING, List.of(TypeRef.STRING, TypeRef.INT, TypeRef.INT));
   }
 
   @Override
   public EmitResult emit(JavaTranspileVisitor v, List<ExprNode> args) {
-    if (args.size() != 1)
-      throw new RuntimeException("ord expects exactly one argument");
+    if (args.size() != 3)
+      throw new RuntimeException("strlen expects three arguments");
 
     EmitResult a = v.emit(args.get(0));
+    EmitResult b = v.emit(args.get(1));
+    EmitResult c = v.emit(args.get(2));
 
     EmitResult r = new EmitResult();
     r.javaStatements.addAll(a.javaStatements);
 
     String temp = v.getTemps().next();
-    r.javaStatements.add("char " + temp + " = " + a.value + ".charAt(0);");
+    r.javaStatements.add("String " + temp + " = " + a.value + ".substring(" + b.value + ", " + c.value + ");");
+    r.value = temp;
 
-    String temp1 = v.getTemps().next();
-    r.javaStatements.add("int " + temp1 + " = (int) " + temp + ";");
-
-    r.value = temp1;
     return r;
   }
 }
