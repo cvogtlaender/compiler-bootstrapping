@@ -121,7 +121,17 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
 
     String tmp = temps.next();
     String jt = JavaType.of(typeOf(n));
-    r.javaStatements.add(jt + " " + tmp + " = (" + l.value + " " + n.op + " " + rr.value + ");");
+
+    if ((n.op.equals("==") || n.op.equals("!="))
+        && typeOf(n.left).name.equals(TypeRef.STRING.name)
+        && typeOf(n.right).name.equals(TypeRef.STRING.name)) {
+
+      String eq = "java.util.Objects.equals(" + l.value + ", " + rr.value + ")";
+      String expr = n.op.equals("==") ? eq : "!(" + eq + ")";
+      r.javaStatements.add(jt + " " + tmp + " = (" + expr + ");");
+    } else {
+      r.javaStatements.add(jt + " " + tmp + " = (" + l.value + " " + n.op + " " + rr.value + ");");
+    }
     r.value = tmp;
     return r;
   }

@@ -18,7 +18,7 @@ public class Print implements Builtin {
 
   @Override
   public FunSig signature() {
-    return new FunSig(TypeRef.INT, List.of(TypeRef.STRING));
+    return new FunSig(TypeRef.INT, List.of(TypeRef.ANY));
   }
 
   @Override
@@ -30,7 +30,7 @@ public class Print implements Builtin {
 
     EmitResult r = new EmitResult();
     r.javaStatements.addAll(a.javaStatements);
-    r.javaStatements.add("System.out.print(" + a.value + ");");
+    r.javaStatements.add("System.out.println(" + String.valueOf(a.value) + ");");
     r.value = "0";
     return r;
   }

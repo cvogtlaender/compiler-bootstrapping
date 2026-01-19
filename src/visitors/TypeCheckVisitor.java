@@ -33,6 +33,10 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
     return t;
   }
 
+  public static boolean acceptsAny(TypeRef t) {
+    return t.name.equals(TypeRef.ANY.name);
+  }
+
   public static void requireSame(TypeRef a, TypeRef b, String msg) {
     if ((a.name.equals(b.name))) {
       return;
@@ -192,8 +196,10 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
       for (int i = 0; i < n.args.size(); i++) {
         TypeRef at = n.args.get(i).accept(this);
         TypeRef pt = sig.paramTypes.get(i);
-        requireSame(at, pt, "Arg " + (i + 1) + " of builtin '" + vn.name
-            + "' expects " + pt.name + ", got " + at.name);
+        if (!acceptsAny(pt)) {
+          requireSame(at, pt, "Arg " + (i + 1) + " of builtin '" + vn.name
+              + "' expects " + pt.name + ", got " + at.name);
+        }
       }
 
       return mark(n, sig.returnType);
