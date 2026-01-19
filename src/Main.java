@@ -15,6 +15,7 @@ import environment.functions.CharAt;
 import environment.functions.Ord;
 import environment.functions.Print;
 import environment.functions.PrintInt;
+import environment.functions.ReadFile;
 import environment.functions.StrLen;
 import environment.functions.SubStr;
 import visitors.ASTBuildVisitor;
@@ -89,6 +90,7 @@ public class Main {
     b.register(new StrLen());
     b.register(new SubStr());
     b.register(new Ord());
+    b.register(new ReadFile());
 
     for (FunDef f : prog.functions) {
       Env env = new Env();
