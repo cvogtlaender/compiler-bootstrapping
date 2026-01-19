@@ -11,8 +11,7 @@ public class TypeRef {
   public static final TypeRef BOOL = new TypeRef("bool");
   public static final TypeRef STRING = new TypeRef("string");
 
-  @Override
-  public String toString() {
-    return this.name;
+  public static final boolean isPrimitive(TypeRef t) {
+    return t.equals(TypeRef.INT) || t.equals(TypeRef.BOOL) || t.equals(TypeRef.STRING);
   }
 }

@@ -33,9 +33,18 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
     return t;
   }
 
-  private static void requireSame(TypeRef a, TypeRef b, String msg) {
-    if (!a.name.equals(b.name))
-      throw new TypeError(msg);
+  public static void requireSame(TypeRef a, TypeRef b, String msg) {
+    if ((a.name.equals(b.name))) {
+      return;
+    }
+    if (a.name.equals("null") && !TypeRef.isPrimitive(b)) {
+      return;
+    }
+    if (b.name.equals("null") && !TypeRef.isPrimitive(a)) {
+      return;
+    }
+
+    throw new TypeError(msg);
   }
 
   @Override
@@ -131,6 +140,12 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
 
     TypeRef tt = n.thenBranch.accept(this);
     TypeRef et = n.elseBranch.accept(this);
+
+    if (tt.name.equals("null"))
+      return mark(n, et);
+    if (et.name.equals("null"))
+      return mark(n, tt);
+
     requireSame(tt, et, "If branches must have same type, got " + tt.name + " and " + et.name);
     return mark(n, tt);
   }
@@ -138,7 +153,7 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
   @Override
   public TypeRef visit(LetNode n) {
     TypeRef vt = n.value.accept(this);
-    requireSame(vt, n.type, "Let '" + n.name + "' declared " + n.type.name + " but got " + vt.name);
+    requireSame(n.type, vt, "Let '" + n.name + "' declared " + n.type.name + " but got " + vt.name);
 
     Env child = env.child();
     child.put(n.name, n.type);

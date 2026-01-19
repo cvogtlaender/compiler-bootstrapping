@@ -32,9 +32,12 @@ public class SubStr implements Builtin {
 
     EmitResult r = new EmitResult();
     r.javaStatements.addAll(a.javaStatements);
+    r.javaStatements.addAll(b.javaStatements);
+    r.javaStatements.addAll(c.javaStatements);
 
     String temp = v.getTemps().next();
-    r.javaStatements.add("String " + temp + " = " + a.value + ".substring(" + b.value + ", " + c.value + ");");
+    r.javaStatements
+        .add("String " + temp + " = " + a.value + ".substring(" + b.value + ", " + b.value + " + " + c.value + ");");
     r.value = temp;
 
     return r;

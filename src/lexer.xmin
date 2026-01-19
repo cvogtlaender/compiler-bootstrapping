@@ -166,14 +166,11 @@ TokenList lexAllFrom(string s, int pos, TokenList accRev) =
   let LexResult r = nextToken(s, pos) in
     if (!r.ok) then null
     else
-      let TokenList acc2 = cons(r.token, accRev) in
-        if (r.token.kind == "EOF") then reverse(acc2)
-        else lexAllFrom(s, r.nextPos, acc2);
+
 
 TokenList lex(string s) =
   lexAllFrom(s, 0, null);
 
 int main() = {
-  lex("int main()={0;};");
   0;
 };

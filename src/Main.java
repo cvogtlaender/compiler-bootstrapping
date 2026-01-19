@@ -99,10 +99,9 @@ public class Main {
       TypeCheckVisitor tc = new TypeCheckVisitor(env, funs, structs, types, b);
       TypeRef bodyT = f.body.accept(tc);
 
-      if (!bodyT.name.equals(f.returnType.name)) {
-        throw new TypeError("Function '" + f.name + "' returns " + bodyT.name +
-            " but declared " + f.returnType.name);
-      }
+      TypeCheckVisitor.requireSame(bodyT, f.returnType, "Function '" + f.name + "' returns " + bodyT.name +
+          " but declared " + f.returnType.name);
+
     }
 
     String javaOutput = JavaTranspiler.emitJava(prog, types, b, structs);

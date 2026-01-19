@@ -207,7 +207,12 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
     String tmp = temps.next();
     String jt = JavaType.of(typeOf(n));
 
-    r.javaStatements.add(jt + " " + tmp + " = " + (this.structs.containsKey(jt) ? "new " : "") + cal.value + "("
+    String temp = "";
+    if (n.callee instanceof VarNode vn && structs.containsKey(vn.name)) {
+      temp = "new ";
+    }
+
+    r.javaStatements.add(jt + " " + tmp + " = " + temp + cal.value + "("
         + String.join(", ", argVals) + ");");
     r.value = tmp;
     return r;
@@ -218,7 +223,7 @@ public class JavaTranspileVisitor implements AstVisitor<EmitResult> {
     EmitResult r = emit(n.target);
 
     EmitResult s = new EmitResult();
-    r.javaStatements.addAll(r.javaStatements);
+    s.javaStatements.addAll(r.javaStatements);
 
     String temp = temps.next();
     String jt = JavaType.of(typeOf(n));
