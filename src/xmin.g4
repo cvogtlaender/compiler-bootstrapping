@@ -1,14 +1,8 @@
 grammar xmin;
 
-/*
- * PARSER RULES
- */
-
 prog
     : (function | structDecl)* EOF
     ;
-
-/* --- DATA STRUCTURES --- */
 
 structDecl
     : 'struct' ID '{' structField* '}' ';'
@@ -17,9 +11,6 @@ structDecl
 structField
     : type ID ';'
     ;
-
-/* --- FUNCTIONS --- */
-/* Funktionskörper ist genau 1 Expression (oder eine Block-Expression) */
 
 function
     : type ID '(' paramList? ')' '=' expression ';'
@@ -33,8 +24,6 @@ param
     : type ID
     ;
 
-/* --- EXPRESSIONS --- */
-
 expression
     : letExpr
     | ifExpr
@@ -42,17 +31,14 @@ expression
     | logicalOrExpr
     ;
 
-/* let <type> <name> = <expr> in <expr>  */
 letExpr
     : 'let' type ID '=' expression 'in' expression
     ;
 
-/* if <cond> then <expr> else <expr> */
 ifExpr
     : 'if' expression 'then' expression 'else' expression
     ;
 
-/* { e1; e2; e3 }  -> Wert ist e3 (Sequencing als Expression) */
 blockExpr
     : '{' expression (';' expression)* ';' '}'
     ;
@@ -86,7 +72,6 @@ unaryExpr
     | postfixExpr
     ;
 
-/* Postfix-Chains: f(a)(b).x  */
 postfixExpr
     : primary postfixPart*
     ;
@@ -114,18 +99,12 @@ literal
     | 'null'
     ;
 
-/* --- TYPES --- */
-
 type
     : 'int'
     | 'bool'
     | 'string'
     | ID
     ;
-
-/*
- * LEXER RULES
- */
 
 ID
     : [a-zA-Z_] [a-zA-Z_0-9]*
