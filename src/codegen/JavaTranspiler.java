@@ -37,6 +37,7 @@ public class JavaTranspiler {
       sb.append("    }\n  }\n\n");
     }
 
+    // functions
     for (FunDef f : prog.functions) {
       sb.append("  static ").append(JavaType.of(f.returnType)).append(" ").append(f.name).append("(");
 
@@ -58,6 +59,7 @@ public class JavaTranspiler {
       sb.append("  }\n\n");
     }
 
+    // main
     sb.append("  public static void main(String[] args) {\n");
     sb.append("    main();\n");
     sb.append("  }\n");

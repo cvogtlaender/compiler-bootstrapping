@@ -28,7 +28,6 @@ import typechecker.TypeError;
 public class Main {
   public static void main(String[] args) throws Exception {
     if (args.length == 0) {
-      System.out.println("Usage: java Main <file.xmin>");
       return;
     }
     String text = Files.readString(Path.of(args[0]));
@@ -49,7 +48,7 @@ public class Main {
     parser.setErrorHandler(new BailErrorStrategy());
 
     try {
-      ProgContext tree = parser.prog(); // <-- wirft dann bei erstem Fehler
+      ProgContext tree = parser.prog();
 
       ASTBuildVisitor builder = new ASTBuildVisitor();
       Prog prog = (Prog) builder.visit(tree);

@@ -180,7 +180,7 @@ public class TypeCheckVisitor implements AstVisitor<TypeRef> {
   @Override
   public TypeRef visit(CallNode n) {
     if (!(n.callee instanceof VarNode vn)) {
-      throw new TypeError("Only direct function calls supported (callee must be identifier)");
+      throw new TypeError("Only direct function calls supported");
     }
 
     // Builtin functions
