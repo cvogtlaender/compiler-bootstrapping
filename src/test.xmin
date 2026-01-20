@@ -413,10 +413,22 @@ Match parseProg(Cursor c) =
 ParseResult parse(string src) =
   let LexAll lx = lexAll(src) in
     if (!lx.ok) then errP(1, lx.errPos)
-    else
+    else {
+      printTokenList(lx.tokens);
       let Match m = parseProg(cur(lx.tokens)) in
         if (!m.ok) then errP(m.errCode, m.errPos)
         else okP();
+    };
+
+string printTokenList(TokenList l) =
+  if l == null then
+    ""
+  else {
+    print(l.head.kind);
+    print(l.head.lexeme);
+    print("-------------");
+    printTokenList(l.tail);
+  };
 
 int main() = {
   let string src = readFile("input.xmin") in
