@@ -1,0 +1,8 @@
+{
+  "java.project.referencedLibraries": [
+    "antlr-4.13.2-complete.jar"
+  ],
+  "editor.defaultFormatter": "redhat.java",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+}

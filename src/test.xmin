@@ -1,0 +1,445 @@
+struct Token { string kind; string lexeme; int pos; };
+struct LexResult { bool ok; Token token; int nextPos; string err; };
+struct TokenList { Token head; TokenList tail; };
+struct LexAll { bool ok; TokenList tokens; string err; int errPos; };
+
+Token mkToken(string kind, string lex, int pos) = Token(kind, lex, pos);
+LexResult okTok(Token t, int nextPos) = LexResult(true, t, nextPos, "");
+LexResult errTok(string msg, int pos) = LexResult(false, Token("", "", pos), pos, msg);
+LexAll okAll(TokenList ts) = LexAll(true, ts, "", 0);
+LexAll errAll(string msg, int pos) = LexAll(false, null, msg, pos);
+TokenList cons(Token h, TokenList t) = TokenList(h, t);
+
+int codeAt(string s, int i) =
+  if (i < 0) then -1
+  else if (i >= strlen(s)) then -1
+  else ord(charAt(s, i));
+
+bool eq2(string s, int i, int a, int b) =
+  if (i + 1 >= strlen(s)) then false
+  else (codeAt(s, i) == a && codeAt(s, i + 1) == b);
+
+bool isDigitAt(string s, int i) =
+  let int c = codeAt(s, i) in (c >= 48 && c <= 57);
+
+bool isAlphaAt(string s, int i) =
+  let int c = codeAt(s, i) in
+    (c >= 65 && c <= 90) ||
+    (c >= 97 && c <= 122) ||
+    c == 95;
+
+bool isAlnumAt(string s, int i) = isAlphaAt(s, i) || isDigitAt(s, i);
+
+bool isWSAt(string s, int i) =
+  let int c = codeAt(s, i) in (c == 32 || c == 9 || c == 10 || c == 13);
+
+int skipLineComment(string s, int i) =
+  if (i >= strlen(s)) then i
+  else if (codeAt(s, i) == 10) then i
+  else skipLineComment(s, i + 1);
+
+int skipBlockComment(string s, int i) =
+  if (i + 1 >= strlen(s)) then -1
+  else if (eq2(s, i, 42, 47)) then i + 2
+  else skipBlockComment(s, i + 1);
+
+int skipTrivia(string s, int i) =
+  if (i >= strlen(s)) then i
+  else if (isWSAt(s, i)) then skipTrivia(s, i + 1)
+  else if (eq2(s, i, 47, 47)) then skipTrivia(s, skipLineComment(s, i + 2))
+  else if (eq2(s, i, 47, 42)) then
+    let int j = skipBlockComment(s, i + 2) in
+      if (j < 0) then -1 else skipTrivia(s, j)
+  else i;
+
+int scanIntLenFrom(string s, int i) =
+  if (i >= strlen(s)) then 0
+  else if (isDigitAt(s, i)) then 1 + scanIntLenFrom(s, i + 1)
+  else 0;
+
+int scanIdLenFrom(string s, int i) =
+  if (i >= strlen(s)) then 0
+  else if (isAlnumAt(s, i)) then 1 + scanIdLenFrom(s, i + 1)
+  else 0;
+
+int scanStringContentLen(string s, int i) =
+  if (i >= strlen(s)) then -1
+  else
+    let int c = codeAt(s, i) in
+      if (c == 34) then 0
+      else if (c == 92) then
+        if (i + 1 >= strlen(s)) then -1
+        else
+          let int rest = scanStringContentLen(s, i + 2) in
+            if (rest < 0) then -1 else 2 + rest
+      else
+        let int rest = scanStringContentLen(s, i + 1) in
+          if (rest < 0) then -1 else 1 + rest;
+
+string keywordOrId(string t) =
+  if (t == "let") then "LET"
+  else if (t == "in") then "IN"
+  else if (t == "if") then "IF"
+  else if (t == "then") then "THEN"
+  else if (t == "else") then "ELSE"
+  else if (t == "struct") then "STRUCT"
+  else if (t == "true") then "TRUE"
+  else if (t == "false") then "FALSE"
+  else if (t == "null") then "NULL"
+  else if (t == "int") then "KW_INT"
+  else if (t == "bool") then "KW_BOOL"
+  else if (t == "string") then "KW_STRING"
+  else "ID";
+
+LexResult nextToken(string s, int pos0) =
+  let int pos = skipTrivia(s, pos0) in
+  if (pos < 0) then errTok("unterminated block comment", pos0)
+  else if (pos >= strlen(s)) then okTok(mkToken("EOF", "", pos), pos)
+  else
+    if (eq2(s, pos, 61, 61)) then okTok(mkToken("EQEQ", "==", pos), pos + 2)
+    else if (eq2(s, pos, 33, 61)) then okTok(mkToken("NEQ", "!=", pos), pos + 2)
+    else if (eq2(s, pos, 60, 61)) then okTok(mkToken("LE", "<=", pos), pos + 2)
+    else if (eq2(s, pos, 62, 61)) then okTok(mkToken("GE", ">=", pos), pos + 2)
+    else if (eq2(s, pos, 38, 38)) then okTok(mkToken("ANDAND", "&&", pos), pos + 2)
+    else if (eq2(s, pos, 124, 124)) then okTok(mkToken("OROR", "||", pos), pos + 2)
+    else
+      let int c = codeAt(s, pos) in
+      if (c == 40) then okTok(mkToken("LPAREN", "(", pos), pos + 1)
+      else if (c == 41) then okTok(mkToken("RPAREN", ")", pos), pos + 1)
+      else if (c == 123) then okTok(mkToken("LBRACE", "{", pos), pos + 1)
+      else if (c == 125) then okTok(mkToken("RBRACE", "}", pos), pos + 1)
+      else if (c == 44) then okTok(mkToken("COMMA", ",", pos), pos + 1)
+      else if (c == 59) then okTok(mkToken("SEMI", ";", pos), pos + 1)
+      else if (c == 46) then okTok(mkToken("DOT", ".", pos), pos + 1)
+      else if (c == 61) then okTok(mkToken("EQUAL", "=", pos), pos + 1)
+      else if (c == 43) then okTok(mkToken("PLUS", "+", pos), pos + 1)
+      else if (c == 45) then okTok(mkToken("MINUS", "-", pos), pos + 1)
+      else if (c == 42) then okTok(mkToken("STAR", "*", pos), pos + 1)
+      else if (c == 47) then okTok(mkToken("SLASH", "/", pos), pos + 1)
+      else if (c == 37) then okTok(mkToken("PERCENT", "%", pos), pos + 1)
+      else if (c == 33) then okTok(mkToken("BANG", "!", pos), pos + 1)
+      else if (c == 60) then okTok(mkToken("LT", "<", pos), pos + 1)
+      else if (c == 62) then okTok(mkToken("GT", ">", pos), pos + 1)
+      else if (isDigitAt(s, pos)) then
+        let int n = scanIntLenFrom(s, pos) in
+          okTok(mkToken("INT", substr(s, pos, n), pos), pos + n)
+      else if (isAlphaAt(s, pos)) then
+        let int n = scanIdLenFrom(s, pos + 1) in
+        let int total = 1 + n in
+        let string lex = substr(s, pos, total) in
+          okTok(mkToken(keywordOrId(lex), lex, pos), pos + total)
+      else if (c == 34) then
+        let int n = scanStringContentLen(s, pos + 1) in
+          if (n < 0) then errTok("unterminated string", pos)
+          else okTok(mkToken("STRING", substr(s, pos + 1, n), pos), pos + 2 + n)
+      else
+        errTok("unexpected character", pos);
+
+TokenList revGo(TokenList src, TokenList acc) =
+  if (src == null) then acc
+  else revGo(src.tail, cons(src.head, acc));
+
+TokenList reverse(TokenList xs) = revGo(xs, null);
+
+LexAll lexAllFrom(string s, int pos, TokenList accRev) =
+  let LexResult r = nextToken(s, pos) in
+    if (!r.ok) then errAll(r.err, r.token.pos)
+    else
+      let TokenList acc2 = cons(r.token, accRev) in
+        if (r.token.kind == "EOF") then okAll(reverse(acc2))
+        else lexAllFrom(s, r.nextPos, acc2);
+
+LexAll lexAll(string s) = lexAllFrom(s, 0, null);
+
+struct Prog { int dummy; };
+
+struct ParseResult { bool ok; Prog prog; int errCode; int errPos; };
+
+ParseResult okP() = ParseResult(true, Prog(0), 0, 0);
+ParseResult errP(int code, int pos) = ParseResult(false, Prog(0), code, pos);
+
+struct Cursor { TokenList ts; };
+
+Cursor cur(TokenList ts) = Cursor(ts);
+
+Token curTok(Cursor c) =
+  if (c.ts == null) then Token("EOF", "", 0)
+  else c.ts.head;
+
+Cursor advance(Cursor c) =
+  if (c.ts == null) then c else Cursor(c.ts.tail);
+
+bool curIs(Cursor c, string k) = curTok(c).kind == k;
+
+struct Match { bool ok; Cursor c; int errCode; int errPos; };
+
+Match okM(Cursor c) = Match(true, c, 0, 0);
+Match errM(int code, int pos) = Match(false, Cursor(null), code, pos);
+
+Match expect(Cursor c, string k) =
+  if (curIs(c, k)) then okM(advance(c))
+  else errM(2, curTok(c).pos);
+
+Match parseType(Cursor c) =
+  if (curIs(c, "KW_INT") || curIs(c, "KW_BOOL") || curIs(c, "KW_STRING") || curIs(c, "ID"))
+  then okM(advance(c))
+  else errM(2, curTok(c).pos);
+
+Match parsePrimary(Cursor c) =
+  if (curIs(c, "INT") || curIs(c, "STRING") || curIs(c, "TRUE") || curIs(c, "FALSE") || curIs(c, "NULL") || curIs(c, "ID"))
+  then okM(advance(c))
+  else if (curIs(c, "LPAREN")) then
+    let Match m1 = expect(c, "LPAREN") in
+      if (!m1.ok) then m1 else
+        let Match m2 = parseExpr(m1.c) in
+          if (!m2.ok) then m2 else
+            expect(m2.c, "RPAREN")
+  else errM(2, curTok(c).pos);
+
+Match parsePostfixTail(Cursor c) =
+  if (curIs(c, "LPAREN")) then
+    let Match m1 = expect(c, "LPAREN") in
+      if (!m1.ok) then m1 else
+        let Match m2 =
+          if (curIs(m1.c, "RPAREN")) then okM(m1.c) else parseArgList(m1.c)
+        in
+          if (!m2.ok) then m2 else
+            let Match m3 = expect(m2.c, "RPAREN") in
+              if (!m3.ok) then m3 else
+                parsePostfixTail(m3.c)
+  else if (curIs(c, "DOT")) then
+    let Match m1 = expect(c, "DOT") in
+      if (!m1.ok) then m1 else
+        let Match m2 = expect(m1.c, "ID") in
+          if (!m2.ok) then m2 else parsePostfixTail(m2.c)
+  else okM(c);
+
+Match parsePostfix(Cursor c) =
+  let Match m = parsePrimary(c) in
+    if (!m.ok) then m else parsePostfixTail(m.c);
+
+Match parseUnary(Cursor c) =
+  if (curIs(c, "MINUS") || curIs(c, "BANG"))
+  then parseUnary(advance(c))
+  else parsePostfix(c);
+
+Match parseMulTail(Cursor c) =
+  if (curIs(c, "STAR") || curIs(c, "SLASH") || curIs(c, "PERCENT"))
+  then
+    let Match m1 = parseUnary(advance(c)) in
+      if (!m1.ok) then m1 else parseMulTail(m1.c)
+  else okM(c);
+
+Match parseMul(Cursor c) =
+  let Match m = parseUnary(c) in
+    if (!m.ok) then m else parseMulTail(m.c);
+
+Match parseAddTail(Cursor c) =
+  if (curIs(c, "PLUS") || curIs(c, "MINUS"))
+  then
+    let Match m1 = parseMul(advance(c)) in
+      if (!m1.ok) then m1 else parseAddTail(m1.c)
+  else okM(c);
+
+Match parseAdd(Cursor c) =
+  let Match m = parseMul(c) in
+    if (!m.ok) then m else parseAddTail(m.c);
+
+Match parseRelTail(Cursor c) =
+  if (curIs(c, "LT") || curIs(c, "GT") || curIs(c, "LE") || curIs(c, "GE"))
+  then
+    let Match m1 = parseAdd(advance(c)) in
+      if (!m1.ok) then m1 else parseRelTail(m1.c)
+  else okM(c);
+
+Match parseRel(Cursor c) =
+  let Match m = parseAdd(c) in
+    if (!m.ok) then m else parseRelTail(m.c);
+
+Match parseEqTail(Cursor c) =
+  if (curIs(c, "EQEQ") || curIs(c, "NEQ"))
+  then
+    let Match m1 = parseRel(advance(c)) in
+      if (!m1.ok) then m1 else parseEqTail(m1.c)
+  else okM(c);
+
+Match parseEq(Cursor c) =
+  let Match m = parseRel(c) in
+    if (!m.ok) then m else parseEqTail(m.c);
+
+Match parseAndTail(Cursor c) =
+  if (curIs(c, "ANDAND"))
+  then
+    let Match m1 = parseEq(advance(c)) in
+      if (!m1.ok) then m1 else parseAndTail(m1.c)
+  else okM(c);
+
+Match parseAnd(Cursor c) =
+  let Match m = parseEq(c) in
+    if (!m.ok) then m else parseAndTail(m.c);
+
+Match parseOrTail(Cursor c) =
+  if (curIs(c, "OROR"))
+  then
+    let Match m1 = parseAnd(advance(c)) in
+      if (!m1.ok) then m1 else parseOrTail(m1.c)
+  else okM(c);
+
+Match parseOr(Cursor c) =
+  let Match m = parseAnd(c) in
+    if (!m.ok) then m else parseOrTail(m.c);
+
+Match parseBlockRest(Cursor c) =
+  if (curIs(c, "RBRACE")) then expect(c, "RBRACE")
+  else
+    let Match m1 = parseExpr(c) in
+      if (!m1.ok) then m1 else
+        let Match m2 = expect(m1.c, "SEMI") in
+          if (!m2.ok) then m2 else
+            parseBlockRest(m2.c);
+
+Match parseExpr(Cursor c) =
+  if (curIs(c, "LET")) then
+    let Match m1 = expect(c, "LET") in
+      if (!m1.ok) then m1 else
+        let Match m2 = parseType(m1.c) in
+          if (!m2.ok) then m2 else
+            let Match m3 = expect(m2.c, "ID") in
+              if (!m3.ok) then m3 else
+                let Match m4 = expect(m3.c, "EQUAL") in
+                  if (!m4.ok) then m4 else
+                    let Match m5 = parseExpr(m4.c) in
+                      if (!m5.ok) then m5 else
+                        let Match m6 = expect(m5.c, "IN") in
+                          if (!m6.ok) then m6 else
+                            parseExpr(m6.c)
+  else if (curIs(c, "IF")) then
+    let Match m1 = expect(c, "IF") in
+      if (!m1.ok) then m1 else
+        let Match m2 = parseExpr(m1.c) in
+          if (!m2.ok) then m2 else
+            let Match m3 = expect(m2.c, "THEN") in
+              if (!m3.ok) then m3 else
+                let Match m4 = parseExpr(m3.c) in
+                  if (!m4.ok) then m4 else
+                    let Match m5 = expect(m4.c, "ELSE") in
+                      if (!m5.ok) then m5 else
+                        parseExpr(m5.c)
+  else if (curIs(c, "LBRACE")) then
+    let Match m1 = expect(c, "LBRACE") in
+      if (!m1.ok) then m1 else parseBlockRest(m1.c)
+
+  else parseOr(c);
+
+Match parseArgList(Cursor c) =
+  let Match m1 = parseExpr(c) in
+    if (!m1.ok) then m1 else parseArgListTail(m1.c);
+
+Match parseArgListTail(Cursor c) =
+  if (curIs(c, "COMMA")) then
+    let Match m1 = expect(c, "COMMA") in
+      if (!m1.ok) then m1 else
+        let Match m2 = parseExpr(m1.c) in
+          if (!m2.ok) then m2 else parseArgListTail(m2.c)
+  else okM(c);
+
+Match parseParamsTail(Cursor c) =
+  if (curIs(c, "COMMA")) then
+    let Match m1 = expect(c, "COMMA") in
+      if (!m1.ok) then m1 else
+        let Match m2 = parseType(m1.c) in
+          if (!m2.ok) then m2 else
+            let Match m3 = expect(m2.c, "ID") in
+              if (!m3.ok) then m3 else parseParamsTail(m3.c)
+  else okM(c);
+
+Match parseParamsOpt(Cursor c) =
+  if (curIs(c, "RPAREN")) then okM(c)
+  else
+    let Match m1 = parseType(c) in
+      if (!m1.ok) then m1 else
+        let Match m2 = expect(m1.c, "ID") in
+          if (!m2.ok) then m2 else parseParamsTail(m2.c);
+
+Match parseFunction(Cursor c) =
+  let Match m1 = parseType(c) in
+    if (!m1.ok) then m1 else
+      let Match m2 = expect(m1.c, "ID") in
+        if (!m2.ok) then m2 else
+          let Match m3 = expect(m2.c, "LPAREN") in
+            if (!m3.ok) then m3 else
+              let Match m4 = parseParamsOpt(m3.c) in
+                if (!m4.ok) then m4 else
+                  let Match m5 = expect(m4.c, "RPAREN") in
+                    if (!m5.ok) then m5 else
+                      let Match m6 = expect(m5.c, "EQUAL") in
+                        if (!m6.ok) then m6 else
+                          let Match m7 = parseExpr(m6.c) in
+                            if (!m7.ok) then m7 else
+                              expect(m7.c, "SEMI");
+
+Match parseStructFields(Cursor c) =
+  if (curIs(c, "RBRACE")) then okM(c)
+  else
+    let Match m1 = parseType(c) in
+      if (!m1.ok) then m1 else
+        let Match m2 = expect(m1.c, "ID") in
+          if (!m2.ok) then m2 else
+            let Match m3 = expect(m2.c, "SEMI") in
+              if (!m3.ok) then m3 else parseStructFields(m3.c);
+
+Match parseStruct(Cursor c) =
+  let Match m1 = expect(c, "STRUCT") in
+    if (!m1.ok) then m1 else
+      let Match m2 = expect(m1.c, "ID") in
+        if (!m2.ok) then m2 else
+          let Match m3 = expect(m2.c, "LBRACE") in
+            if (!m3.ok) then m3 else
+              let Match m4 = parseStructFields(m3.c) in
+                if (!m4.ok) then m4 else
+                  let Match m5 = expect(m4.c, "RBRACE") in
+                    if (!m5.ok) then m5 else
+                      expect(m5.c, "SEMI");
+
+Match parseTop(Cursor c) =
+  if (curIs(c, "STRUCT")) then parseStruct(c) else parseFunction(c);
+
+Match parseProg(Cursor c) =
+  if (curIs(c, "EOF")) then okM(c)
+  else
+    let Match m1 = parseTop(c) in
+      if (!m1.ok) then m1 else parseProg(m1.c);
+
+ParseResult parse(string src) =
+  let LexAll lx = lexAll(src) in
+    if (!lx.ok) then errP(1, lx.errPos)
+    else {
+      printTokenList(lx.tokens);
+      let Match m = parseProg(cur(lx.tokens)) in
+        if (!m.ok) then errP(m.errCode, m.errPos)
+        else okP();
+    };
+
+string printTokenList(TokenList l) =
+  if l == null then
+    ""
+  else {
+    print(l.head.kind);
+    print(l.head.lexeme);
+    print("-------------");
+    printTokenList(l.tail);
+  };
+
+int main() = {
+  let string src = readFile("input.xmin") in
+  let ParseResult r = parse(src) in {
+    if (r.ok) then { print("PARSE OK"); 0; }
+    else {
+      print("PARSE FAIL pos=");
+      printInt(r.errPos);
+      print(" code=");
+      printInt(r.errCode);
+      0;
+    };
+  };
+};

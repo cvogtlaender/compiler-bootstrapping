@@ -1,0 +1,8 @@
+int main() = {
+  print("public class Out {");
+  print("  public static void main(String[] args) {");
+  print("    System.out.println(123);");
+  print("  }");
+  print("}");
+  0;
+};
